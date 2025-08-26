@@ -4,6 +4,12 @@ A ComfyUI custom node for converting images into IRC art by processing them in p
 
 This node is used with [aibird](https://github.com/birdneststream/aibird) to convert images to IRC art.
 
+![Workflow Example](workflows/screenshot.png)
+
+## Workflow
+
+An example workflow is provided in `workflows/mircify_example_workflow.json`. At the moment this example is using qwen image lightning, however any model that is decent at making pixel ansi style art can suffice.
+
 ## Features
 
 - **Universal Image Support**: Works with any image dimensions
