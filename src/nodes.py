@@ -7,9 +7,28 @@ from datetime import datetime
 class IRCArtConverter:
     CATEGORY = "image/conversion"
     
-    # 99-color IRC palette (class constant)
+    # 99-color IRC palette (class constant) - matches Go IRCColorPalette exactly
     IRC_COLORS = [
-        (255, 255, 255), (0, 0, 0), (0, 0, 127), (0, 147, 0), (255, 0, 0), (127, 0, 0), (156, 0, 156), (252, 127, 0), (255, 255, 0), (0, 252, 0), (0, 147, 147), (0, 255, 255), (0, 0, 252), (255, 0, 255), (127, 127, 127), (210, 210, 210), (71, 0, 0), (71, 33, 0), (71, 71, 0), (50, 71, 0), (0, 71, 0), (0, 71, 44), (0, 71, 71), (0, 39, 71), (0, 0, 71), (46, 0, 71), (71, 0, 71), (71, 0, 42), (116, 0, 0), (116, 58, 0), (116, 116, 0), (81, 116, 0), (0, 116, 0), (0, 116, 73), (0, 116, 116), (0, 64, 116), (0, 0, 116), (75, 0, 116), (116, 0, 116), (116, 0, 69), (181, 0, 0), (181, 99, 0), (181, 181, 0), (125, 181, 0), (0, 181, 0), (0, 181, 113), (0, 181, 181), (0, 99, 181), (0, 0, 181), (117, 0, 181), (181, 0, 181), (181, 0, 107), (255, 0, 0), (255, 140, 0), (255, 255, 0), (178, 255, 0), (0, 255, 0), (0, 255, 160), (0, 255, 255), (0, 140, 255), (0, 0, 255), (165, 0, 255), (255, 0, 255), (255, 0, 152), (255, 89, 89), (255, 180, 89), (255, 255, 113), (207, 255, 96), (111, 255, 111), (101, 255, 201), (109, 255, 255), (89, 180, 255), (89, 89, 255), (196, 89, 255), (255, 102, 255), (255, 89, 188), (255, 156, 156), (255, 211, 156), (255, 255, 156), (226, 255, 156), (156, 255, 156), (156, 255, 219), (156, 255, 255), (156, 211, 255), (156, 156, 255), (220, 156, 255), (255, 156, 255), (255, 148, 211), (0, 0, 0), (19, 19, 19), (40, 40, 40), (54, 54, 54), (77, 77, 77), (101, 101, 101), (129, 129, 129), (159, 159, 159), (188, 188, 188), (226, 226, 226), (255, 255, 255)
+        (255, 255, 255), (0, 0, 0), (0, 0, 127), (0, 147, 0), (255, 0, 0),
+        (127, 0, 0), (156, 0, 156), (252, 127, 0), (255, 255, 0), (0, 252, 0),
+        (0, 147, 147), (0, 255, 255), (0, 0, 252), (255, 0, 255), (127, 127, 127),
+        (210, 210, 210), (71, 0, 0), (71, 33, 0), (71, 71, 0), (50, 71, 0),
+        (0, 71, 0), (0, 71, 44), (0, 71, 71), (0, 39, 71), (0, 0, 71),
+        (46, 0, 71), (71, 0, 71), (71, 0, 42), (116, 0, 0), (116, 58, 0),
+        (116, 116, 0), (81, 116, 0), (0, 116, 0), (0, 116, 73), (0, 116, 116),
+        (0, 64, 116), (0, 0, 116), (75, 0, 116), (116, 0, 116), (116, 0, 69),
+        (181, 0, 0), (181, 99, 0), (181, 181, 0), (125, 181, 0), (0, 181, 0),
+        (0, 181, 113), (0, 181, 181), (0, 99, 181), (0, 0, 181), (117, 0, 181),
+        (181, 0, 181), (181, 0, 107), (255, 0, 0), (255, 140, 0), (255, 255, 0),
+        (178, 255, 0), (0, 255, 0), (0, 255, 160), (0, 255, 255), (0, 140, 255),
+        (0, 0, 255), (165, 0, 255), (255, 0, 255), (255, 0, 152), (255, 89, 89),
+        (255, 180, 89), (255, 255, 113), (207, 255, 96), (111, 255, 111), (101, 255, 201),
+        (109, 255, 255), (89, 180, 255), (89, 89, 255), (196, 89, 255), (255, 102, 255),
+        (255, 89, 188), (255, 156, 156), (255, 211, 156), (255, 255, 156), (226, 255, 156),
+        (156, 255, 156), (156, 255, 219), (156, 255, 255), (156, 211, 255), (156, 156, 255),
+        (220, 156, 255), (255, 156, 255), (255, 148, 211), (0, 0, 0), (19, 19, 19),
+        (40, 40, 40), (54, 54, 54), (77, 77, 77), (101, 101, 101), (129, 129, 129),
+        (159, 159, 159), (188, 188, 188), (226, 226, 226), (255, 255, 255)
     ]
     
     @classmethod    
@@ -21,7 +40,7 @@ class IRCArtConverter:
                 "block_height": ("INT", {"default": 15, "min": 1, "max": 32}),
                 "half_block_mode": ("BOOLEAN", {"default": False}),
                 "use_16_colors": ("BOOLEAN", {"default": False}),
-                "color_method": (["dominant", "average", "median"],)
+                "distance_method": (["weighted_manhattan", "manhattan", "euclidean", "perceptual_weighted"], {"default": "weighted_manhattan"}),
             } 
         }
     
@@ -29,12 +48,38 @@ class IRCArtConverter:
     RETURN_NAMES = ("processed_image", "irc_text")
     FUNCTION = "convert_to_irc_art"
     
-    def manhattan_distance(self, detected_color, target_colors):
-        """Manhattan distance function for color matching."""
-        return np.sum(np.abs(detected_color - target_colors), axis=1)
+    def calculate_color_distance(self, detected_color, target_colors, method):
+        """Calculate color distance using various methods."""
+        if method == "manhattan":
+            # Standard Manhattan distance (L1 norm)
+            return np.sum(np.abs(detected_color - target_colors), axis=1)
+        
+        elif method == "weighted_manhattan":
+            # Weighted Manhattan distance for better perceptual matching
+            # Weights based on human visual sensitivity: [R, G, B]
+            weights = np.array([0.7, 1.0, 0.5])
+            diff = np.abs(detected_color - target_colors)
+            return np.sum(diff * weights, axis=1)
+        
+        elif method == "euclidean":
+            # Standard Euclidean distance (L2 norm)
+            return np.sqrt(np.sum((detected_color - target_colors) ** 2, axis=1))
+        
+        elif method == "perceptual_weighted":
+            # Perceptual weighted Euclidean distance
+            # Based on CIE recommendations for RGB weights
+            weights = np.array([0.299, 0.587, 0.114])  # Luminance weights
+            diff = (detected_color - target_colors) ** 2
+            return np.sqrt(np.sum(diff * weights, axis=1))
+        
+        else:
+            # Fallback to weighted manhattan
+            weights = np.array([0.7, 1.0, 0.5])
+            diff = np.abs(detected_color - target_colors)
+            return np.sum(diff * weights, axis=1)
     
-    def apply_color_transfer(self, image, use_16_colors=False):
-        """Apply color transfer using KMeans clustering and Manhattan distance matching."""
+    def apply_color_transfer(self, image, use_16_colors=False, distance_method="weighted_manhattan"):
+        """Apply color transfer using KMeans clustering and configurable distance matching."""
         # Convert image to numpy array
         img_array = (image * 255.0).cpu().numpy().astype(np.uint8)
         img_flat = img_array.reshape((-1, 3))
@@ -53,7 +98,7 @@ class IRCArtConverter:
         closest_colors = []
         
         for color in detected_colors:
-            distances = self.manhattan_distance(color, target_colors_array)
+            distances = self.calculate_color_distance(color, target_colors_array, distance_method)
             closest_colors.append(target_colors_array[np.argmin(distances)])
         
         closest_colors = np.array(closest_colors)
@@ -64,54 +109,45 @@ class IRCArtConverter:
         # Convert back to torch tensor
         return torch.from_numpy(processed_image.astype(np.float32) / 255.0)
     
-    def get_block_color(self, block, method):
-        """Extract representative color from a block using specified method."""
-        if method == "average":
+    def get_block_color(self, block):
+        """Extract dominant color from a block using k-means clustering."""
+        # Use k-means to find dominant color
+        block_flat = block.reshape(-1, 3).cpu().numpy()
+        if len(block_flat) < 2:
+            return tuple(block_flat[0] * 255)
+        
+        # Check for color variance
+        color_std = np.std(block_flat, axis=0)
+        if np.max(color_std) < 0.01:  # Very uniform color
+            return tuple(np.mean(block_flat, axis=0) * 255)
+        
+        # Find unique colors to determine appropriate cluster count
+        unique_colors = np.unique(block_flat, axis=0)
+        n_clusters = min(3, len(unique_colors))
+        
+        if n_clusters == 1:
+            return tuple(unique_colors[0] * 255)
+        
+        # Use k-means with appropriate cluster count
+        try:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+                kmeans.fit(block_flat)
+            
+            # Find the cluster with most points
+            labels = kmeans.labels_
+            unique, counts = np.unique(labels, return_counts=True)
+            dominant_cluster = unique[np.argmax(counts)]
+            dominant_color = kmeans.cluster_centers_[dominant_cluster]
+            
+            return tuple(dominant_color * 255)
+        except:
+            # Fallback to average if k-means fails
             return tuple(block.mean(dim=(0, 1)).cpu().numpy() * 255)
-        
-        elif method == "median":
-            block_flat = block.reshape(-1, 3)
-            median_vals = torch.median(block_flat, dim=0)[0]
-            return tuple(median_vals.cpu().numpy() * 255)
-        
-        elif method == "dominant":
-            # Use k-means to find dominant color
-            block_flat = block.reshape(-1, 3).cpu().numpy()
-            if len(block_flat) < 2:
-                return tuple(block_flat[0] * 255)
-            
-            # Check for color variance
-            color_std = np.std(block_flat, axis=0)
-            if np.max(color_std) < 0.01:  # Very uniform color
-                return tuple(np.mean(block_flat, axis=0) * 255)
-            
-            # Find unique colors to determine appropriate cluster count
-            unique_colors = np.unique(block_flat, axis=0)
-            n_clusters = min(3, len(unique_colors))
-            
-            if n_clusters == 1:
-                return tuple(unique_colors[0] * 255)
-            
-            # Use k-means with appropriate cluster count
-            try:
-                import warnings
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-                    kmeans.fit(block_flat)
-                
-                # Find the cluster with most points
-                labels = kmeans.labels_
-                unique, counts = np.unique(labels, return_counts=True)
-                dominant_cluster = unique[np.argmax(counts)]
-                dominant_color = kmeans.cluster_centers_[dominant_cluster]
-                
-                return tuple(dominant_color * 255)
-            except:
-                # Fallback to average if k-means fails
-                return tuple(block.mean(dim=(0, 1)).cpu().numpy() * 255)
     
-    def find_irc_color_index(self, block_color, use_16_colors):
+    def find_irc_color_index(self, block_color, use_16_colors, distance_method="weighted_manhattan"):
         """Find the IRC color index for a given block color."""
         # Get representative color for this block
         block_color_rounded = tuple(np.round(block_color).astype(int))
@@ -131,7 +167,7 @@ class IRCArtConverter:
             else:
                 target_colors_array = np.array(self.IRC_COLORS)
             
-            distances = self.manhattan_distance(block_color_array, target_colors_array)
+            distances = self.calculate_color_distance(block_color_array, target_colors_array, distance_method)
             color_idx = np.argmin(distances)
         
         return color_idx
@@ -163,7 +199,7 @@ class IRCArtConverter:
         return line_text
     
     def process_block(self, color_transferred_img, x, y, block_width, block_height, 
-                     actual_block_height, width, height, color_method, use_16_colors):
+                     actual_block_height, width, height, use_16_colors, distance_method):
         """Process a single block and return its color index."""
         # Calculate block boundaries
         start_x = x * block_width
@@ -178,10 +214,10 @@ class IRCArtConverter:
         if block.numel() == 0:
             return 0, start_y, end_y
         else:
-            block_color = self.get_block_color(block, color_method)
-            return self.find_irc_color_index(block_color, use_16_colors), start_y, end_y
+            block_color = self.get_block_color(block)
+            return self.find_irc_color_index(block_color, use_16_colors, distance_method), start_y, end_y
     
-    def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, use_16_colors, color_method):
+    def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, use_16_colors, distance_method):
         # Input validation
         batch_size, height, width, channels = image.shape
         
@@ -192,7 +228,7 @@ class IRCArtConverter:
         img = image[0]  # Shape: (height, width, 3)
         
         # Apply color transfer to map image to IRC palette
-        color_transferred_img = self.apply_color_transfer(img, use_16_colors)
+        color_transferred_img = self.apply_color_transfer(img, use_16_colors, distance_method)
         
         # Calculate number of blocks
         blocks_x = width // block_width
@@ -218,7 +254,7 @@ class IRCArtConverter:
                     # Process first half-block
                     color_idx, start_y, end_y = self.process_block(
                         color_transferred_img, x, y, block_width, block_height,
-                        actual_block_height, width, height, color_method, use_16_colors
+                        actual_block_height, width, height, use_16_colors, distance_method
                     )
                     
                     # Apply color to image and store for text
@@ -231,7 +267,7 @@ class IRCArtConverter:
                     if y + 1 < blocks_y:
                         color_idx2, start_y2, end_y2 = self.process_block(
                             color_transferred_img, x, y + 1, block_width, block_height,
-                            actual_block_height, width, height, color_method, use_16_colors
+                            actual_block_height, width, height, use_16_colors, distance_method
                         )
                         
                         # Apply color to second block
@@ -248,7 +284,7 @@ class IRCArtConverter:
                 for x in range(blocks_x):
                     color_idx, start_y, end_y = self.process_block(
                         color_transferred_img, x, y, block_width, block_height,
-                        actual_block_height, width, height, color_method, use_16_colors
+                        actual_block_height, width, height, use_16_colors, distance_method
                     )
                     
                     # Apply color to image and store for text

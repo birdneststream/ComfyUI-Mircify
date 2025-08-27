@@ -13,10 +13,11 @@ An example workflow is provided in `workflows/mircify_example_workflow.json`. At
 ## Features
 
 - **Universal Image Support**: Works with any image dimensions
-- **Color Transfer Integration**: Uses KMeans clustering with Manhattan distance for accurate color mapping
+- **Color Transfer Integration**: Uses KMeans clustering with multiple distance methods for accurate color mapping
 - **Block Processing**: Configurable block sizes (default 8x15 pixels)
 - **Half Block Mode**: Option for 8x7.5 pixel blocks for finer resolution
-- **Multiple Color Methods**: Choose between dominant, average, or median color extraction
+- **Dominant Color Extraction**: Uses k-means clustering to find the most prominent color in each block
+- **Multiple Distance Methods**: Choose between weighted manhattan, manhattan, euclidean, and perceptual weighted distance calculations
 - **99-Color IRC Palette**: Maps colors to extended IRC color palette
 - **16-Color Compatibility Mode**: Option to use traditional 16-color IRC palette
 - **Dual Output**: Returns both processed image and mIRC-formatted text
@@ -52,13 +53,13 @@ Converts images into IRC art with both visual and text output.
 - **block_height**: Height of each block in pixels (default: 15)
 - **half_block_mode**: Enable half-height blocks (8x7.5 instead of 8x15)
 - **use_16_colors**: Use only first 16 IRC colors for compatibility (default: False)
-- **color_method**: Method for color selection (dominant/average/median)
+- **distance_method**: Color distance calculation method (weighted_manhattan/manhattan/euclidean/perceptual_weighted)
 
 **Outputs:**
 - **processed_image**: Visual representation of the IRC art conversion
 - **irc_text**: mIRC-formatted text with color codes ready for IRC clients
 
-### IRC Text Saver
+### IRC Text Saver (still not working too good with color matching)
 **Category**: `text/output`
 
 Saves IRC-formatted text to files for easy copying.
@@ -78,10 +79,11 @@ Saves IRC-formatted text to files for easy copying.
    - Connect the `irc_text` output to "IRC Text Saver"
    - Run the workflow
 
-2. **Color Methods:**
-   - **dominant**: Uses k-means clustering to find the most prominent color in each block
-   - **average**: Calculates the mean RGB values for the block
-   - **median**: Uses the median RGB values for better noise resistance
+2. **Distance Methods:**
+   - **weighted_manhattan**: Manhattan distance with perceptual weights (Green=1.0, Red=0.7, Blue=0.5) for better natural color matching
+   - **manhattan**: Standard Manhattan distance (L1 norm) - fastest calculation
+   - **euclidean**: Standard Euclidean distance (L2 norm) - geometric accuracy
+   - **perceptual_weighted**: Euclidean distance with CIE luminance weights for perceived brightness matching
 
 3. **Block Modes:**
    - **Full blocks (8x15)**: Standard IRC character block size
@@ -100,12 +102,12 @@ Saves IRC-formatted text to files for easy copying.
 
 The node uses a two-stage approach:
 
-1. **Color Transfer Phase**: Applies KMeans clustering with Manhattan distance to map the entire image to the 99-color IRC palette
-2. **Block Processing Phase**: Divides the color-corrected image into blocks and generates the final IRC art output
+1. **Color Transfer Phase**: Applies KMeans clustering with configurable distance methods to map the entire image to the 99-color IRC palette
+2. **Block Processing Phase**: Divides the color-corrected image into blocks using dominant color extraction and generates the final IRC art output
 
 ## IRC Color Palette
 
-The node uses an extended 99-color IRC palette built in.
+The node uses an extended 99-color IRC palette built in. It also can support just 16 colors.
 
 For more information about how IRC uses colors refer to these resources:
 
@@ -124,7 +126,7 @@ For more information about how IRC uses colors refer to these resources:
 ## Credits
 
 - Color transfer logic adapted from [ComfyUI-Color_Transfer](https://github.com/45uee/ComfyUI-Color_Transfer) by 45uee
-- Uses KMeans clustering and Manhattan distance for optimal color mapping
+- Uses KMeans clustering with modified multiple distance methods for optimal color mapping
 
 ## License
 
