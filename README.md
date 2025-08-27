@@ -2,17 +2,32 @@
 
 A ComfyUI custom node for converting images into IRC art by processing them in pixel blocks and generating both image and text outputs with optimal color selection from a 99-color IRC palette.
 
-This node is used with [aibird](https://github.com/birdneststream/aibird) to convert images to IRC art.
+This node is used with [aibird](https://github.com/birdneststream/aibird) to convert text prompts to IRC art that is scrolled in the IRC client.
 
-![Workflow Example](workflows/screenshot.png)
+## Limitations
+
+- As we have a limited color palette of 99 colors, at times some colors may not match perfect. Overall it matches good enough. I've found the `perceptual_weighted` followed by `weighted_manhattan` to be best.
+- 16 colors don't work too well, but I've added this for legacy compatibility with some IRC clients that do not support 99 colors.
+- IRC has a `512 - (ident + host)` byte limit per line. If there's too many half blocks rendered, it may go over this limit and break the display of the ASCII art. Rendering the image with a solid background color can help with this, or using fullblock mode.
+- I haven't tried with many widths and heights. The current `640px x 448px` is a good fit for making ASCII art that is 80 character blocks wide and 30 character blocks hight. A smaller aspect ratio would fit a lot of half blocks better.
 
 ## Workflow
 
-An example workflow is provided in `workflows/mircify_example_workflow.json`. At the moment this example is using qwen image lightning, however any model that is decent at making pixel ansi style art can suffice.
+![Workflow Example](workflows/screenshot.png)
+
+An example workflow is provided in `workflows/mircify_example_workflow.json`.
+
+At the moment this example is using qwen image (gguf), lightning 4 step lora with RES4LYF samplers. However any model that is decent at making pixel ansi style art can suffice.
+
+## IRC Output
+
+Pasting the results of the created `.txt` file into IRC, we should be able to see the IRC art rendered in the client.
+
+![IRC output](workflows/screenshot_irc.png)
 
 ## Features
 
-- **Universal Image Support**: Works with any image dimensions
+- **Universal Image Support**: Works with any image dimensions, but remember the IRC 512 byte limit per line.
 - **Color Transfer Integration**: Uses KMeans clustering with multiple distance methods for accurate color mapping
 - **Block Processing**: Configurable block sizes (default 8x15 pixels)
 - **Half Block Mode**: Option for 8x7.5 pixel blocks for finer resolution
@@ -59,7 +74,7 @@ Converts images into IRC art with both visual and text output.
 - **processed_image**: Visual representation of the IRC art conversion
 - **irc_text**: mIRC-formatted text with color codes ready for IRC clients
 
-### IRC Text Saver (still not working too good with color matching)
+### IRC Text Saver
 **Category**: `text/output`
 
 Saves IRC-formatted text to files for easy copying.
@@ -102,7 +117,7 @@ Saves IRC-formatted text to files for easy copying.
 
 The node uses a two-stage approach:
 
-1. **Color Transfer Phase**: Applies KMeans clustering with configurable distance methods to map the entire image to the 99-color IRC palette
+1. **Color Transfer Phase**: Applies KMeans clustering with configurable distance methods to map the entire image to the IRC color palette
 2. **Block Processing Phase**: Divides the color-corrected image into blocks using dominant color extraction and generates the final IRC art output
 
 ## IRC Color Palette

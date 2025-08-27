@@ -180,21 +180,59 @@ class IRCArtConverter:
         line_text = ""
         i = 0
         while i < len(line_colors):
-            color_code = line_colors[i]
-            count = 1
+            color_entry = line_colors[i]
             
-            # Count consecutive identical colors
-            while i + count < len(line_colors) and line_colors[i + count] == color_code:
-                count += 1
-            
-            # Format color code
-            if color_code <= 9:
-                color_format = f"\x03{color_code},{color_code}"
+            # Check if this is half-block mode (tuple) or full-block mode (int)
+            if isinstance(color_entry, tuple):
+                # Half-block mode: (top_color, bottom_color)
+                top_color, bottom_color = color_entry
+                
+                if top_color == bottom_color:
+                    # Same color - use space with background color, check for compression
+                    count = 1
+                    # Count consecutive identical same-color tuples
+                    while (i + count < len(line_colors) and 
+                           isinstance(line_colors[i + count], tuple) and
+                           line_colors[i + count] == color_entry):
+                        count += 1
+                    
+                    # Format color code once
+                    if top_color < 10:
+                        color_format = f"\x03{top_color},{top_color}"
+                    else:
+                        color_format = f"\x03{top_color:02d},{top_color:02d}"
+                    
+                    line_text += color_format + (" " * count)
+                    i += count
+                else:
+                    # Different colors - use half block character (no compression for mixed colors)
+                    if top_color < 10 and bottom_color < 10:
+                        color_format = f"\x03{top_color},{bottom_color}"
+                    elif top_color < 10:
+                        color_format = f"\x03{top_color},{bottom_color:02d}"
+                    elif bottom_color < 10:
+                        color_format = f"\x03{top_color:02d},{bottom_color}"
+                    else:
+                        color_format = f"\x03{top_color:02d},{bottom_color:02d}"
+                    line_text += color_format + "▀"
+                    i += 1
             else:
-                color_format = f"\x03{color_code:02d},{color_code:02d}"
-            
-            line_text += color_format + (" " * count)
-            i += count
+                # Full-block mode: single color
+                color_code = color_entry
+                count = 1
+                
+                # Count consecutive identical colors
+                while i + count < len(line_colors) and not isinstance(line_colors[i + count], tuple) and line_colors[i + count] == color_code:
+                    count += 1
+                
+                # Format color code
+                if color_code < 10:
+                    color_format = f"\x03{color_code},{color_code}"
+                else:
+                    color_format = f"\x03{color_code:02d},{color_code:02d}"
+                
+                line_text += color_format + (" " * count)
+                i += count
         
         return line_text
     
@@ -257,13 +295,12 @@ class IRCArtConverter:
                         actual_block_height, width, height, use_16_colors, distance_method
                     )
                     
-                    # Apply color to image and store for text
+                    # Apply color to image
                     irc_color = self.IRC_COLORS[color_idx]
                     irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
                     output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
-                    line_colors.append(color_idx + 1)  # IRC codes are 1-based
                     
-                    # Process second half-block if it exists
+                    # Process second half-block if it exists  
                     if y + 1 < blocks_y:
                         color_idx2, start_y2, end_y2 = self.process_block(
                             color_transferred_img, x, y + 1, block_width, block_height,
@@ -274,6 +311,12 @@ class IRCArtConverter:
                         irc_color2 = self.IRC_COLORS[color_idx2]
                         irc_color_tensor2 = torch.tensor(irc_color2, dtype=torch.float32) / 255.0
                         output[start_y2:end_y2, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor2
+                        
+                        # Store both colors as tuple (top, bottom)
+                        line_colors.append((color_idx, color_idx2))
+                    else:
+                        # Last row, only one half-block - use same color for both
+                        line_colors.append((color_idx, color_idx))
                 
                 text_lines.append(self.format_irc_line(line_colors))
         else:
@@ -291,7 +334,7 @@ class IRCArtConverter:
                     irc_color = self.IRC_COLORS[color_idx]
                     irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
                     output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
-                    line_colors.append(color_idx + 1)  # IRC codes are 1-based
+                    line_colors.append(color_idx)  # Use same index as image
                 
                 text_lines.append(self.format_irc_line(line_colors))
         
