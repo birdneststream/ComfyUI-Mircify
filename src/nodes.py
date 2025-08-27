@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from sklearn.cluster import KMeans
-from PIL import Image
 from datetime import datetime
 
 class IRCArtConverter:
@@ -74,9 +73,7 @@ class IRCArtConverter:
         
         else:
             # Fallback to weighted manhattan
-            weights = np.array([0.7, 1.0, 0.5])
-            diff = np.abs(detected_color - target_colors)
-            return np.sum(diff * weights, axis=1)
+            return self.calculate_color_distance(detected_color, target_colors, "weighted_manhattan")
     
     def apply_color_transfer(self, image, use_16_colors=False, distance_method="weighted_manhattan"):
         """Apply color transfer using KMeans clustering and configurable distance matching."""
@@ -93,7 +90,7 @@ class IRCArtConverter:
         
         detected_colors = clustering_model.cluster_centers_.astype(int)
         
-        # Match detected colors to IRC palette using Manhattan distance
+        # Match detected colors to IRC palette using configured distance method
         target_colors_array = np.array(target_colors)
         closest_colors = []
         
@@ -152,25 +149,40 @@ class IRCArtConverter:
         # Get representative color for this block
         block_color_rounded = tuple(np.round(block_color).astype(int))
         
-        # Find the exact IRC color index using exact matching first
+        # Select palette based on mode
+        palette = self.IRC_COLORS[:16] if use_16_colors else self.IRC_COLORS
+        
         # Try exact match first (since colors should already be in IRC palette)
         try:
-            if use_16_colors:
-                color_idx = self.IRC_COLORS[:16].index(block_color_rounded)
-            else:
-                color_idx = self.IRC_COLORS.index(block_color_rounded)
+            return palette.index(block_color_rounded)
         except ValueError:
             # Fallback to distance matching if exact match fails
-            block_color_array = np.array(block_color)
-            if use_16_colors:
-                target_colors_array = np.array(self.IRC_COLORS[:16])
-            else:
-                target_colors_array = np.array(self.IRC_COLORS)
-            
-            distances = self.calculate_color_distance(block_color_array, target_colors_array, distance_method)
-            color_idx = np.argmin(distances)
+            target_colors_array = np.array(palette)
+            distances = self.calculate_color_distance(np.array(block_color), target_colors_array, distance_method)
+            return np.argmin(distances)
+    
+    def _format_color_code(self, fg_color, bg_color=None):
+        """Format IRC color code with proper padding."""
+        if bg_color is None:
+            bg_color = fg_color
         
-        return color_idx
+        fg_fmt = f"{fg_color:02d}" if fg_color >= 10 else str(fg_color)
+        bg_fmt = f"{bg_color:02d}" if bg_color >= 10 else str(bg_color)
+        return f"\x03{fg_fmt},{bg_fmt}"
+    
+    def _count_consecutive(self, colors, index, is_tuple_check=False):
+        """Count consecutive identical entries starting from index."""
+        count = 1
+        current = colors[index]
+        
+        while index + count < len(colors):
+            next_entry = colors[index + count]
+            # Check type consistency and value equality
+            if (is_tuple_check and not isinstance(next_entry, tuple)) or next_entry != current:
+                break
+            count += 1
+        
+        return count
     
     def format_irc_line(self, line_colors):
         """Format a line of IRC color codes with compression."""
@@ -179,59 +191,27 @@ class IRCArtConverter:
         
         line_text = ""
         i = 0
+        
         while i < len(line_colors):
             color_entry = line_colors[i]
             
-            # Check if this is half-block mode (tuple) or full-block mode (int)
             if isinstance(color_entry, tuple):
                 # Half-block mode: (top_color, bottom_color)
                 top_color, bottom_color = color_entry
                 
                 if top_color == bottom_color:
-                    # Same color - use space with background color, check for compression
-                    count = 1
-                    # Count consecutive identical same-color tuples
-                    while (i + count < len(line_colors) and 
-                           isinstance(line_colors[i + count], tuple) and
-                           line_colors[i + count] == color_entry):
-                        count += 1
-                    
-                    # Format color code once
-                    if top_color < 10:
-                        color_format = f"\x03{top_color},{top_color}"
-                    else:
-                        color_format = f"\x03{top_color:02d},{top_color:02d}"
-                    
-                    line_text += color_format + (" " * count)
+                    # Same color - compress consecutive identical blocks
+                    count = self._count_consecutive(line_colors, i, is_tuple_check=True)
+                    line_text += self._format_color_code(top_color) + (" " * count)
                     i += count
                 else:
-                    # Different colors - use half block character (no compression for mixed colors)
-                    if top_color < 10 and bottom_color < 10:
-                        color_format = f"\x03{top_color},{bottom_color}"
-                    elif top_color < 10:
-                        color_format = f"\x03{top_color},{bottom_color:02d}"
-                    elif bottom_color < 10:
-                        color_format = f"\x03{top_color:02d},{bottom_color}"
-                    else:
-                        color_format = f"\x03{top_color:02d},{bottom_color:02d}"
-                    line_text += color_format + "▀"
+                    # Different colors - use half block character
+                    line_text += self._format_color_code(top_color, bottom_color) + "▀"
                     i += 1
             else:
                 # Full-block mode: single color
-                color_code = color_entry
-                count = 1
-                
-                # Count consecutive identical colors
-                while i + count < len(line_colors) and not isinstance(line_colors[i + count], tuple) and line_colors[i + count] == color_code:
-                    count += 1
-                
-                # Format color code
-                if color_code < 10:
-                    color_format = f"\x03{color_code},{color_code}"
-                else:
-                    color_format = f"\x03{color_code:02d},{color_code:02d}"
-                
-                line_text += color_format + (" " * count)
+                count = self._count_consecutive(line_colors, i)
+                line_text += self._format_color_code(color_entry) + (" " * count)
                 i += count
         
         return line_text
@@ -254,6 +234,70 @@ class IRCArtConverter:
         else:
             block_color = self.get_block_color(block)
             return self.find_irc_color_index(block_color, use_16_colors, distance_method), start_y, end_y
+    
+    def _apply_color_to_output(self, output, color_idx, start_y, end_y, start_x, end_x):
+        """Apply IRC color to output image region."""
+        irc_color = self.IRC_COLORS[color_idx]
+        irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
+        output[start_y:end_y, start_x:end_x, :] = irc_color_tensor
+    
+    def _process_half_block_row(self, color_transferred_img, y, blocks_x, blocks_y, output, params):
+        """Process a row of half-blocks."""
+        line_colors = []
+        block_width, block_height, actual_block_height = params['block_width'], params['block_height'], params['actual_block_height']
+        width, height = params['width'], params['height']
+        use_16_colors, distance_method = params['use_16_colors'], params['distance_method']
+        
+        for x in range(blocks_x):
+            # Process first half-block
+            color_idx, start_y, end_y = self.process_block(
+                color_transferred_img, x, y, block_width, block_height,
+                actual_block_height, width, height, use_16_colors, distance_method
+            )
+            
+            # Apply color to image
+            x_start = x * block_width
+            x_end = min((x + 1) * block_width, width)
+            self._apply_color_to_output(output, color_idx, start_y, end_y, x_start, x_end)
+            
+            # Process second half-block if it exists  
+            if y + 1 < blocks_y:
+                color_idx2, start_y2, end_y2 = self.process_block(
+                    color_transferred_img, x, y + 1, block_width, block_height,
+                    actual_block_height, width, height, use_16_colors, distance_method
+                )
+                
+                # Apply color to second block
+                self._apply_color_to_output(output, color_idx2, start_y2, end_y2, x_start, x_end)
+                
+                # Store both colors as tuple (top, bottom)
+                line_colors.append((color_idx, color_idx2))
+            else:
+                # Last row, only one half-block - use same color for both
+                line_colors.append((color_idx, color_idx))
+        
+        return line_colors
+    
+    def _process_full_block_row(self, color_transferred_img, y, blocks_x, output, params):
+        """Process a row of full blocks."""
+        line_colors = []
+        block_width, block_height, actual_block_height = params['block_width'], params['block_height'], params['actual_block_height']
+        width, height = params['width'], params['height']
+        use_16_colors, distance_method = params['use_16_colors'], params['distance_method']
+        
+        for x in range(blocks_x):
+            color_idx, start_y, end_y = self.process_block(
+                color_transferred_img, x, y, block_width, block_height,
+                actual_block_height, width, height, use_16_colors, distance_method
+            )
+            
+            # Apply color to image and store for text
+            x_start = x * block_width
+            x_end = min((x + 1) * block_width, width)
+            self._apply_color_to_output(output, color_idx, start_y, end_y, x_start, x_end)
+            line_colors.append(color_idx)
+        
+        return line_colors
     
     def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, use_16_colors, distance_method):
         # Input validation
@@ -282,60 +326,27 @@ class IRCArtConverter:
         output = torch.zeros_like(img)
         text_lines = []
         
+        # Bundle parameters for cleaner function calls
+        params = {
+            'block_width': block_width,
+            'block_height': block_height,
+            'actual_block_height': actual_block_height,
+            'width': width,
+            'height': height,
+            'use_16_colors': use_16_colors,
+            'distance_method': distance_method
+        }
+        
         # Process blocks
         if half_block_mode:
             # Half-block mode: process in pairs
             for y in range(0, blocks_y, 2):
-                line_colors = []
-                
-                for x in range(blocks_x):
-                    # Process first half-block
-                    color_idx, start_y, end_y = self.process_block(
-                        color_transferred_img, x, y, block_width, block_height,
-                        actual_block_height, width, height, use_16_colors, distance_method
-                    )
-                    
-                    # Apply color to image
-                    irc_color = self.IRC_COLORS[color_idx]
-                    irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
-                    output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
-                    
-                    # Process second half-block if it exists  
-                    if y + 1 < blocks_y:
-                        color_idx2, start_y2, end_y2 = self.process_block(
-                            color_transferred_img, x, y + 1, block_width, block_height,
-                            actual_block_height, width, height, use_16_colors, distance_method
-                        )
-                        
-                        # Apply color to second block
-                        irc_color2 = self.IRC_COLORS[color_idx2]
-                        irc_color_tensor2 = torch.tensor(irc_color2, dtype=torch.float32) / 255.0
-                        output[start_y2:end_y2, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor2
-                        
-                        # Store both colors as tuple (top, bottom)
-                        line_colors.append((color_idx, color_idx2))
-                    else:
-                        # Last row, only one half-block - use same color for both
-                        line_colors.append((color_idx, color_idx))
-                
+                line_colors = self._process_half_block_row(color_transferred_img, y, blocks_x, blocks_y, output, params)
                 text_lines.append(self.format_irc_line(line_colors))
         else:
             # Full block mode
             for y in range(blocks_y):
-                line_colors = []
-                
-                for x in range(blocks_x):
-                    color_idx, start_y, end_y = self.process_block(
-                        color_transferred_img, x, y, block_width, block_height,
-                        actual_block_height, width, height, use_16_colors, distance_method
-                    )
-                    
-                    # Apply color to image and store for text
-                    irc_color = self.IRC_COLORS[color_idx]
-                    irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
-                    output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
-                    line_colors.append(color_idx)  # Use same index as image
-                
+                line_colors = self._process_full_block_row(color_transferred_img, y, blocks_x, output, params)
                 text_lines.append(self.format_irc_line(line_colors))
         
         # Join all lines with newlines

@@ -136,7 +136,6 @@ For more information about how IRC uses colors refer to these resources:
 - torch
 - numpy
 - scikit-learn
-- pillow
 
 ## Credits
 
