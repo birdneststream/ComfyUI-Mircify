@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
+from datetime import datetime
 
 class IRCArtConverter:
     CATEGORY = "image/conversion"
@@ -14,6 +15,7 @@ class IRCArtConverter:
                 "block_width": ("INT", {"default": 8, "min": 1, "max": 32}),
                 "block_height": ("INT", {"default": 15, "min": 1, "max": 32}),
                 "half_block_mode": ("BOOLEAN", {"default": False}),
+                "use_16_colors": ("BOOLEAN", {"default": False}),
                 "color_method": (["dominant", "average", "median"],)
             } 
         }
@@ -52,7 +54,7 @@ class IRCArtConverter:
         """Manhattan distance function matching the color transfer node"""
         return np.sum(np.abs(detected_color - target_colors), axis=1)
     
-    def apply_color_transfer(self, image):
+    def apply_color_transfer(self, image, use_16_colors=False):
         """Apply color transfer using KMeans clustering and Manhattan distance matching"""
         # Convert image to numpy array
         img_array = (image * 255.0).cpu().numpy().astype(np.uint8)
@@ -60,14 +62,20 @@ class IRCArtConverter:
         # Reshape for clustering
         img_flat = img_array.reshape((-1, 3))
         
+        # Select color palette based on mode
+        if use_16_colors:
+            target_colors = self.IRC_COLORS[:16]  # Use only first 16 colors
+        else:
+            target_colors = self.IRC_COLORS  # Use all 99 colors
+        
         # KMeans clustering
-        clustering_model = KMeans(n_clusters=len(self.IRC_COLORS), n_init="auto", random_state=42)
+        clustering_model = KMeans(n_clusters=len(target_colors), n_init="auto", random_state=42)
         clustering_model.fit(img_flat)
         
         detected_colors = clustering_model.cluster_centers_.astype(int)
         
         # Match detected colors to IRC palette using Manhattan distance
-        target_colors_array = np.array(self.IRC_COLORS)
+        target_colors_array = np.array(target_colors)
         closest_colors = []
         
         for color in detected_colors:
@@ -136,7 +144,7 @@ class IRCArtConverter:
                 # Fallback to average if k-means fails
                 return tuple(block.mean(dim=(0, 1)).cpu().numpy() * 255)
     
-    def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, color_method):
+    def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, use_16_colors, color_method):
         # Input validation
         batch_size, height, width, channels = image.shape
         
@@ -147,7 +155,7 @@ class IRCArtConverter:
         img = image[0]  # Shape: (height, width, 3)
         
         # Step 1: Apply color transfer to map image to IRC palette
-        color_transferred_img = self.apply_color_transfer(img)
+        color_transferred_img = self.apply_color_transfer(img, use_16_colors)
         
         # Adjust block height for half block mode
         actual_block_height = block_height / 2 if half_block_mode else block_height
@@ -188,11 +196,23 @@ class IRCArtConverter:
                 
                 # Find the exact IRC color index since colors are already mapped
                 block_color_array = np.array(block_color)
-                target_colors_array = np.array(self.IRC_COLORS)
+                
+                # Use the same color palette as color transfer
+                if use_16_colors:
+                    target_colors_array = np.array(self.IRC_COLORS[:16])
+                else:
+                    target_colors_array = np.array(self.IRC_COLORS)
+                
                 distances = self.manhattan_distance(block_color_array, target_colors_array)
                 color_idx = np.argmin(distances)
-                irc_color = self.IRC_COLORS[color_idx]
-                irc_code = self.get_irc_color_code(color_idx)
+                
+                # Get the actual color and code from the full palette
+                if use_16_colors:
+                    irc_color = self.IRC_COLORS[color_idx]  # color_idx is 0-15
+                    irc_code = self.get_irc_color_code(color_idx)  # codes 1-16
+                else:
+                    irc_color = self.IRC_COLORS[color_idx]  # color_idx is 0-98
+                    irc_code = self.get_irc_color_code(color_idx)  # codes 1-99
                 
                 # Store color code for text output
                 line_colors.append(irc_code)
@@ -201,16 +221,35 @@ class IRCArtConverter:
                 irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
                 output[start_y:end_y, start_x:end_x, :] = irc_color_tensor
             
-            # Build IRC text line with color codes
-            # Format: \x03{fg},{bg}{char} where fg=bg for solid blocks
+            # Build IRC text line with optimized color codes and compression
             line_text = ""
-            for color_code in line_colors:
-                # Use the same color for foreground and background, with space character
-                line_text += f"\x03{color_code:02d},{color_code:02d} "
+            if not line_colors:
+                text_lines.append("")
+                continue
+                
+            # Compress consecutive identical colors
+            i = 0
+            while i < len(line_colors):
+                color_code = line_colors[i]
+                count = 1
+                
+                # Count consecutive identical colors
+                while i + count < len(line_colors) and line_colors[i + count] == color_code:
+                    count += 1
+                
+                # Format color code (single digits for 1-9, double for 10+)
+                if color_code <= 9:
+                    color_format = f"\x03{color_code},{color_code}"
+                else:
+                    color_format = f"\x03{color_code:02d},{color_code:02d}"
+                
+                # Add spaces based on count
+                line_text += color_format + (" " * count)
+                i += count
             
             text_lines.append(line_text)
         
-        # Join all lines with newlines
+        # Join all lines with newlines (no header timestamp)
         irc_text = "\n".join(text_lines)
         
         # Return as batch of 1
@@ -238,7 +277,13 @@ class IRCTextSaver:
     def save_irc_text(self, irc_text, filename):
         """Save IRC text to a file"""
         import os
-        from datetime import datetime
+        
+        # Generate current timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Replace {TIMESTAMP} placeholder in filename if present
+        if "{TIMESTAMP}" in filename:
+            filename = filename.replace("{TIMESTAMP}", timestamp)
         
         # Ensure filename has .txt extension
         if not filename.endswith('.txt'):
@@ -248,15 +293,8 @@ class IRCTextSaver:
         output_dir = "output/irc_art"
         os.makedirs(output_dir, exist_ok=True)
         
-        # Create full file path with timestamp if file exists
-        base_name = filename.replace('.txt', '')
+        # Create full file path
         file_path = os.path.join(output_dir, filename)
-        
-        # If file exists, add timestamp
-        if os.path.exists(file_path):
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{base_name}_{timestamp}.txt"
-            file_path = os.path.join(output_dir, filename)
         
         # Write the IRC text to file
         try:
