@@ -9,7 +9,15 @@ from sklearn.cluster import KMeans
 from datetime import datetime
 import warnings
 import os
+import json
 from typing import Tuple, List, Optional, Union, Dict, Any
+
+try:
+    from PIL import Image, ExifTags
+    from PIL.ExifTags import TAGS
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 
 # ============================================================================
@@ -381,6 +389,105 @@ class ColorTransfer:
 
 
 # ============================================================================
+# PNG EXIF UTILITIES
+# ============================================================================
+
+class PNGExifHandler:
+    """Handles PNG metadata embedding operations."""
+    
+    @staticmethod
+    def create_metadata_json(irc_text: str = None, ansi_text: str = None, 
+                           block_width: int = None, block_height: int = None,
+                           half_block_mode: bool = None, color_method: str = None) -> str:
+        """Create JSON metadata string with IRC art data."""
+        metadata = {
+            "timestamp": datetime.now().isoformat(),
+            "generator": "ComfyUI-Mircify",
+            "version": "1.0"
+        }
+        
+        # Add text data if provided
+        if irc_text is not None:
+            metadata["irc"] = irc_text
+        if ansi_text is not None:
+            metadata["ansi"] = ansi_text
+        
+        # Add optional parameters if provided
+        if block_width is not None:
+            metadata["block_width"] = block_width
+        if block_height is not None:
+            metadata["block_height"] = block_height
+        if half_block_mode is not None:
+            metadata["half_block_mode"] = half_block_mode
+        if color_method is not None:
+            metadata["color_method"] = color_method
+            
+        return json.dumps(metadata, ensure_ascii=False)
+    
+    @staticmethod
+    def embed_metadata(image: Image.Image, metadata_json: str) -> Image.Image:
+        """Embed metadata into PNG UserComment EXIF field."""
+        if not PIL_AVAILABLE:
+            raise ImportError("PIL/Pillow is required for EXIF metadata embedding")
+        
+        # Get existing EXIF data or create new
+        exif_dict = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": None}
+        
+        if hasattr(image, '_getexif') and image._getexif() is not None:
+            # Copy existing EXIF data
+            existing_exif = image._getexif()
+            for tag_id, value in existing_exif.items():
+                if tag_id in TAGS:
+                    tag_name = TAGS[tag_id]
+                    if tag_name in ["UserComment", "ImageDescription"]:
+                        continue  # We'll override these
+                    exif_dict["0th"][tag_id] = value
+        
+        # Add our metadata to UserComment (0x9286)
+        # UserComment format: charset (8 bytes) + actual comment
+        # Using ASCII charset identifier
+        charset_identifier = b"ASCII\x00\x00\x00"
+        user_comment = charset_identifier + metadata_json.encode('utf-8', errors='ignore')
+        exif_dict["Exif"][ExifTags.Base.UserComment.value] = user_comment
+        
+        return image
+    
+    @staticmethod
+    def tensor_to_pil(tensor: torch.Tensor) -> Image.Image:
+        """Convert PyTorch tensor to PIL Image."""
+        # Handle batch dimension
+        if len(tensor.shape) == 4:
+            tensor = tensor.squeeze(0)
+        
+        # Convert to numpy and scale to 0-255
+        numpy_image = tensor.cpu().numpy()
+        if numpy_image.max() <= 1.0:
+            numpy_image = (numpy_image * 255).astype(np.uint8)
+        else:
+            numpy_image = numpy_image.astype(np.uint8)
+            
+        # Convert to PIL
+        return Image.fromarray(numpy_image, 'RGB')
+    
+    @staticmethod
+    def save_png_with_metadata(tensor: torch.Tensor, filepath: str, metadata_json: str) -> None:
+        """Save tensor as PNG with embedded metadata."""
+        pil_image = PNGExifHandler.tensor_to_pil(tensor)
+        
+        # Create PNG info for metadata
+        from PIL.PngImagePlugin import PngInfo
+        png_info = PngInfo()
+        
+        # Add metadata as PNG text chunks (more reliable than EXIF for PNG)
+        png_info.add_text("UserComment", metadata_json)
+        png_info.add_text("Software", "ComfyUI-Mircify")
+        png_info.add_text("Description", "IRC Art with embedded text data")
+        
+        # Save with metadata
+        pil_image.save(filepath, format='PNG', pnginfo=png_info, optimize=True)
+
+
+# ============================================================================
 # MAIN NODE CLASSES
 # ============================================================================
 
@@ -642,6 +749,161 @@ class IRCTextSaver:
             return {"ui": {"text": [error_msg]}, "result": (error_msg,)}
 
 
+class IRCPNGExporter:
+    """Node to export images as PNG with embedded IRC/ANSI metadata."""
+    
+    CATEGORY = "image/output"
+    OUTPUT_DIR = "output/irc_art"
+    DEFAULT_FILENAME = "irc_art_{TIMESTAMP}.png"
+    
+    @classmethod    
+    def INPUT_TYPES(cls) -> Dict[str, Any]:
+        return { 
+            "required": { 
+                "image": ("IMAGE",),
+                "preview": ("BOOLEAN", {"default": True}),
+            },
+            "optional": {
+                "irc_text": ("STRING", {"forceInput": True}),
+                "ansi_text": ("STRING", {"forceInput": True}),
+                "filename": ("STRING", {"default": cls.DEFAULT_FILENAME}),
+            }
+        }
+    
+    RETURN_TYPES = ()
+    FUNCTION = "export_png_with_metadata"
+    OUTPUT_NODE = True
+    
+    def export_png_with_metadata(self, image: torch.Tensor, preview: bool, 
+                                irc_text: str = None, ansi_text: str = None, 
+                                filename: str = None) -> Dict[str, Any]:
+        """Export PNG with embedded IRC/ANSI metadata."""
+        
+        # Check PIL availability
+        if not PIL_AVAILABLE:
+            error_msg = "PIL/Pillow is required for PNG export with metadata. Please install with: pip install Pillow"
+            return {"ui": {"text": [error_msg]}}
+        
+        # Create metadata JSON
+        metadata_json = PNGExifHandler.create_metadata_json(irc_text, ansi_text)
+        metadata_dict = json.loads(metadata_json)
+        
+        # Check if we have any text data to embed
+        has_text_data = irc_text is not None or ansi_text is not None
+        text_info = []
+        if irc_text is not None:
+            text_info.append("IRC text")
+        if ansi_text is not None:
+            text_info.append("ANSI text")
+        
+        if preview:
+            # Preview mode - create a temporary image with metadata and display it
+            import tempfile
+            import uuid
+            
+            if has_text_data:
+                metadata_preview = f"Preview mode - Image with embedded metadata ({', '.join(text_info)})"
+            else:
+                metadata_preview = f"Preview mode - Image with basic metadata (no text data connected)"
+            
+            # Create temporary file with metadata for preview using ComfyUI's approach
+            try:
+                import folder_paths
+                import random
+                
+                # Use ComfyUI's temp directory structure
+                temp_dir = folder_paths.get_temp_directory()
+                
+                # Generate filename like ComfyUI's PreviewImage node
+                temp_filename = f"preview_{random.randint(0, 2**32):08x}.png"
+                temp_path = os.path.join(temp_dir, temp_filename)
+                
+                # Convert tensor to PIL image using ComfyUI's method
+                i = 255.0 * image[0].cpu().numpy()
+                img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+                
+                # Add metadata using PNG text chunks (using standard visible fields)
+                from PIL.PngImagePlugin import PngInfo
+                png_info = PngInfo()
+                
+                # Use standard PNG text chunks that are more likely to be visible
+                png_info.add_text("Description", f"IRC Art with embedded data")
+                png_info.add_text("Comment", metadata_json)  # Main data in Comment field
+                png_info.add_text("Software", "ComfyUI-Mircify")
+                png_info.add_text("Author", "ComfyUI IRC Art Converter")
+                
+                # Save with metadata
+                img.save(temp_path, pnginfo=png_info, compress_level=4)
+                
+                # Return with proper ComfyUI image display format
+                return {
+                    "ui": {
+                        "images": [{
+                            "filename": temp_filename,
+                            "subfolder": "",
+                            "type": "temp"
+                        }],
+                        "text": [metadata_preview]
+                    }
+                }
+                
+            except Exception as e:
+                error_msg = f"Error creating preview: {str(e)}"
+                return {"ui": {"text": [error_msg]}}
+        
+        else:
+            # Save mode - save PNG with metadata using ComfyUI's approach
+            if not filename:
+                filename = self.DEFAULT_FILENAME
+            
+            # Generate timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Process filename
+            if "{TIMESTAMP}" in filename:
+                filename = filename.replace("{TIMESTAMP}", timestamp)
+            
+            if not filename.lower().endswith('.png'):
+                filename += '.png'
+            
+            # Create output directory
+            os.makedirs(self.OUTPUT_DIR, exist_ok=True)
+            
+            # Save file with metadata
+            file_path = os.path.join(self.OUTPUT_DIR, filename)
+            
+            try:
+                # Convert tensor to PIL image using ComfyUI's method
+                i = 255.0 * image[0].cpu().numpy()
+                img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+                
+                # Add metadata using PNG text chunks (using standard visible fields)
+                from PIL.PngImagePlugin import PngInfo
+                png_info = PngInfo()
+                
+                # Use standard PNG text chunks that are more likely to be visible
+                png_info.add_text("Description", f"IRC Art with embedded data")
+                png_info.add_text("Comment", metadata_json)  # Main data in Comment field
+                png_info.add_text("Software", "ComfyUI-Mircify")
+                png_info.add_text("Author", "ComfyUI IRC Art Converter")
+                
+                # Save with metadata
+                img.save(file_path, pnginfo=png_info, compress_level=4)
+                
+                abs_path = os.path.abspath(file_path)
+                
+                if has_text_data:
+                    success_msg = f"PNG with metadata saved to: {abs_path}\nEmbedded data: {', '.join(text_info)}"
+                else:
+                    success_msg = f"PNG with basic metadata saved to: {abs_path}\n(No text data was connected)"
+                
+                return {"ui": {"text": [success_msg]}}
+                
+            except Exception as e:
+                error_msg = f"Error saving PNG with metadata: {str(e)}"
+                return {"ui": {"text": [error_msg]}}
+
+
 # ============================================================================
 # NODE REGISTRATION
 # ============================================================================
@@ -649,9 +911,11 @@ class IRCTextSaver:
 NODE_CLASS_MAPPINGS = {
     "IRC Art Converter": IRCArtConverter,
     "IRC Text Saver": IRCTextSaver,
+    "IRC PNG Exporter": IRCPNGExporter,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "IRC Art Converter": "IRC Art Converter", 
     "IRC Text Saver": "IRC Text Saver",
+    "IRC PNG Exporter": "IRC PNG Exporter",
 }

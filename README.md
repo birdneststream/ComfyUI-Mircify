@@ -108,6 +108,47 @@ Saves IRC-formatted text to files for easy copying.
 **Outputs:**
 - **file_path**: Absolute path to the saved file
 
+### IRC PNG Exporter
+**Category**: `image/output`
+
+Exports images as PNG files with embedded IRC and ANSI metadata. Displays the image directly within the node interface for preview, with optional file saving functionality.
+
+**Inputs:**
+- **image**: Input image (any dimensions supported)
+- **preview**: Toggle between preview and save modes (default: True)
+- **irc_text**: IRC formatted text to embed (optional STRING input)
+- **ansi_text**: ANSI formatted text to embed (optional STRING input)  
+- **filename**: Output filename when saving with {TIMESTAMP} placeholder support (default: "irc_art_{TIMESTAMP}.png")
+
+**Outputs:**
+- No output connectors - displays image directly in the node
+
+**Features:**
+- **Image Preview**: Shows the image with embedded metadata directly within the node interface
+- **Metadata Embedding**: Stores IRC/ANSI text data in PNG metadata using standard text chunks
+- **Flexible Input**: Works with just an image, or with optional IRC/ANSI text data
+- **Two Modes**: 
+  - **Preview Mode** (default): Display image with metadata info in the node
+  - **Save Mode**: Export PNG file with embedded metadata to `output/irc_art/` directory
+- **Metadata Fields**: Uses standard PNG text chunks (Description, Comment, Software, Author) for maximum compatibility
+- **External Access**: Metadata can be extracted using ExifTool, ImageMagick, or Python PIL (see `META.md` for details)
+
+**Example JSON Metadata Structure:**
+```json
+{
+  "timestamp": "2025-08-27T14:30:45.123456",
+  "generator": "ComfyUI-Mircify",
+  "version": "1.0",
+  "irc": "\u0003\u0003,01█████████████████████████████████████████\u000f",
+  "ansi": "\u001b[38;5;15;48;5;0m█████████████████████████████████████████\u001b[0m"
+}
+```
+
+This JSON data is embedded in the PNG's **Comment** field and can be extracted using:
+```bash
+exiftool -Comment your_image.png
+```
+
 ## Usage
 
 1. **Basic Workflow:**
@@ -115,6 +156,7 @@ Saves IRC-formatted text to files for easy copying.
    - Connect it to "IRC Art Converter"
    - Connect the `irc_text` output to "IRC Text Saver" (for IRC clients)
    - Optionally connect the `ansi_text` output to display in terminals
+   - **New**: Connect `processed_image`, `irc_text`, and `ansi_text` to "IRC PNG Exporter" for image preview with embedded metadata
    - Run the workflow
 
 2. **Distance Methods:**
