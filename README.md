@@ -18,8 +18,10 @@ An example workflow is provided in `workflows/mircify_example_workflow.json`. At
 - **Half Block Mode**: Option for 8x7.5 pixel blocks for finer resolution
 - **Multiple Color Methods**: Choose between dominant, average, or median color extraction
 - **99-Color IRC Palette**: Maps colors to extended IRC color palette
+- **16-Color Compatibility Mode**: Option to use traditional 16-color IRC palette
 - **Dual Output**: Returns both processed image and mIRC-formatted text
-- **Text File Export**: Save IRC codes directly to text files for easy copying
+- **Optimized Text Output**: Compressed color codes and space-efficient formatting
+- **Text File Export**: Save IRC codes directly to text files with timestamp support
 
 ## Installation
 
@@ -49,20 +51,21 @@ Converts images into IRC art with both visual and text output.
 - **block_width**: Width of each block in pixels (default: 8)
 - **block_height**: Height of each block in pixels (default: 15)
 - **half_block_mode**: Enable half-height blocks (8x7.5 instead of 8x15)
+- **use_16_colors**: Use only first 16 IRC colors for compatibility (default: False)
 - **color_method**: Method for color selection (dominant/average/median)
 
 **Outputs:**
 - **processed_image**: Visual representation of the IRC art conversion
 - **irc_text**: mIRC-formatted text with color codes ready for IRC clients
 
-### IRC Text Saver (probably not working)
+### IRC Text Saver
 **Category**: `text/output`
 
 Saves IRC-formatted text to files for easy copying.
 
 **Inputs:**
 - **irc_text**: IRC text from the converter (STRING input)
-- **filename**: Output filename (default: "irc_art.txt")
+- **filename**: Output filename with {TIMESTAMP} placeholder support (default: "irc_art.txt")
 
 **Outputs:**
 - **file_path**: Absolute path to the saved file
@@ -84,10 +87,14 @@ Saves IRC-formatted text to files for easy copying.
    - **Full blocks (8x15)**: Standard IRC character block size
    - **Half blocks (8x7.5)**: Provides finer vertical resolution
 
-4. **Text Output:**
-   - Uses mIRC color format: `\x03{fg},{bg} `
-   - Color codes 1-99 corresponding to the IRC palette
+4. **Color Modes:**
+   - **99-color mode**: Full extended IRC palette for maximum color accuracy
+   - **16-color mode**: Traditional IRC colors for better compatibility
+
+5. **Text Output:**
+   - Uses optimized mIRC color text output
    - Ready to paste directly into IRC clients
+   - Support for {TIMESTAMP} placeholder in filenames
 
 ## Color Processing
 

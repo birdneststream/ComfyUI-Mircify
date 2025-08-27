@@ -265,7 +265,7 @@ class IRCTextSaver:
         return { 
             "required": { 
                 "irc_text": ("STRING", {"forceInput": True}),
-                "filename": ("STRING", {"default": "irc_art.txt"}),
+                "filename": ("STRING", {"default": "irc_art_{TIMESTAMP}.txt"}),
             } 
         }
     
