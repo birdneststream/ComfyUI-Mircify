@@ -7,6 +7,11 @@ from datetime import datetime
 class IRCArtConverter:
     CATEGORY = "image/conversion"
     
+    # 99-color IRC palette (class constant)
+    IRC_COLORS = [
+        (255, 255, 255), (0, 0, 0), (0, 0, 127), (0, 147, 0), (255, 0, 0), (127, 0, 0), (156, 0, 156), (252, 127, 0), (255, 255, 0), (0, 252, 0), (0, 147, 147), (0, 255, 255), (0, 0, 252), (255, 0, 255), (127, 127, 127), (210, 210, 210), (71, 0, 0), (71, 33, 0), (71, 71, 0), (50, 71, 0), (0, 71, 0), (0, 71, 44), (0, 71, 71), (0, 39, 71), (0, 0, 71), (46, 0, 71), (71, 0, 71), (71, 0, 42), (116, 0, 0), (116, 58, 0), (116, 116, 0), (81, 116, 0), (0, 116, 0), (0, 116, 73), (0, 116, 116), (0, 64, 116), (0, 0, 116), (75, 0, 116), (116, 0, 116), (116, 0, 69), (181, 0, 0), (181, 99, 0), (181, 181, 0), (125, 181, 0), (0, 181, 0), (0, 181, 113), (0, 181, 181), (0, 99, 181), (0, 0, 181), (117, 0, 181), (181, 0, 181), (181, 0, 107), (255, 0, 0), (255, 140, 0), (255, 255, 0), (178, 255, 0), (0, 255, 0), (0, 255, 160), (0, 255, 255), (0, 140, 255), (0, 0, 255), (165, 0, 255), (255, 0, 255), (255, 0, 152), (255, 89, 89), (255, 180, 89), (255, 255, 113), (207, 255, 96), (111, 255, 111), (101, 255, 201), (109, 255, 255), (89, 180, 255), (89, 89, 255), (196, 89, 255), (255, 102, 255), (255, 89, 188), (255, 156, 156), (255, 211, 156), (255, 255, 156), (226, 255, 156), (156, 255, 156), (156, 255, 219), (156, 255, 255), (156, 211, 255), (156, 156, 255), (220, 156, 255), (255, 156, 255), (255, 148, 211), (0, 0, 0), (19, 19, 19), (40, 40, 40), (54, 54, 54), (77, 77, 77), (101, 101, 101), (129, 129, 129), (159, 159, 159), (188, 188, 188), (226, 226, 226), (255, 255, 255)
+    ]
+    
     @classmethod    
     def INPUT_TYPES(s):
         return { 
@@ -24,49 +29,18 @@ class IRCArtConverter:
     RETURN_NAMES = ("processed_image", "irc_text")
     FUNCTION = "convert_to_irc_art"
     
-    def __init__(self):
-        # 99-color IRC palette
-        self.IRC_COLORS = [
-            (255, 255, 255), (0, 0, 0), (0, 0, 127), (0, 147, 0), (255, 0, 0), 
-            (127, 0, 0), (156, 0, 156), (252, 127, 0), (255, 255, 0), (0, 252, 0), 
-            (0, 147, 147), (0, 255, 255), (0, 0, 252), (255, 0, 255), (127, 127, 127), 
-            (210, 210, 210), (71, 0, 0), (71, 33, 0), (71, 71, 0), (50, 71, 0), 
-            (0, 71, 0), (0, 71, 44), (0, 71, 71), (0, 39, 71), (0, 0, 71), 
-            (46, 0, 71), (71, 0, 71), (71, 0, 42), (116, 0, 0), (116, 58, 0), 
-            (116, 116, 0), (81, 116, 0), (0, 116, 0), (0, 116, 73), (0, 116, 116), 
-            (0, 64, 116), (0, 0, 116), (75, 0, 116), (116, 0, 116), (116, 0, 69), 
-            (181, 0, 0), (181, 99, 0), (181, 181, 0), (125, 181, 0), (0, 181, 0), 
-            (0, 181, 113), (0, 181, 181), (0, 99, 181), (0, 0, 181), (117, 0, 181), 
-            (181, 0, 181), (181, 0, 107), (255, 0, 0), (255, 140, 0), (255, 255, 0), 
-            (178, 255, 0), (0, 255, 0), (0, 255, 160), (0, 255, 255), (0, 140, 255), 
-            (0, 0, 255), (165, 0, 255), (255, 0, 255), (255, 0, 152), (255, 89, 89), 
-            (255, 180, 89), (255, 255, 113), (207, 255, 96), (111, 255, 111), (101, 255, 201), 
-            (109, 255, 255), (89, 180, 255), (89, 89, 255), (196, 89, 255), (255, 102, 255), 
-            (255, 89, 188), (255, 156, 156), (255, 211, 156), (255, 255, 156), (226, 255, 156), 
-            (156, 255, 156), (156, 255, 219), (156, 255, 255), (156, 211, 255), (156, 156, 255), 
-            (220, 156, 255), (255, 156, 255), (255, 148, 211), (0, 0, 0), (19, 19, 19), 
-            (40, 40, 40), (54, 54, 54), (77, 77, 77), (101, 101, 101), (129, 129, 129), 
-            (159, 159, 159), (188, 188, 188), (226, 226, 226), (255, 255, 255)
-        ]
-        self.irc_colors_tensor = torch.tensor(self.IRC_COLORS, dtype=torch.float32)
-    
     def manhattan_distance(self, detected_color, target_colors):
-        """Manhattan distance function matching the color transfer node"""
+        """Manhattan distance function for color matching."""
         return np.sum(np.abs(detected_color - target_colors), axis=1)
     
     def apply_color_transfer(self, image, use_16_colors=False):
-        """Apply color transfer using KMeans clustering and Manhattan distance matching"""
+        """Apply color transfer using KMeans clustering and Manhattan distance matching."""
         # Convert image to numpy array
         img_array = (image * 255.0).cpu().numpy().astype(np.uint8)
-        
-        # Reshape for clustering
         img_flat = img_array.reshape((-1, 3))
         
         # Select color palette based on mode
-        if use_16_colors:
-            target_colors = self.IRC_COLORS[:16]  # Use only first 16 colors
-        else:
-            target_colors = self.IRC_COLORS  # Use all 99 colors
+        target_colors = self.IRC_COLORS[:16] if use_16_colors else self.IRC_COLORS
         
         # KMeans clustering
         clustering_model = KMeans(n_clusters=len(target_colors), n_init="auto", random_state=42)
@@ -80,8 +54,7 @@ class IRCArtConverter:
         
         for color in detected_colors:
             distances = self.manhattan_distance(color, target_colors_array)
-            closest_color = target_colors_array[np.argmin(distances)]
-            closest_colors.append(closest_color)
+            closest_colors.append(target_colors_array[np.argmin(distances)])
         
         closest_colors = np.array(closest_colors)
         
@@ -91,18 +64,12 @@ class IRCArtConverter:
         # Convert back to torch tensor
         return torch.from_numpy(processed_image.astype(np.float32) / 255.0)
     
-    def get_irc_color_code(self, color_idx):
-        """Convert IRC color array index to mIRC color code (1-99)"""
-        return color_idx + 1
-    
     def get_block_color(self, block, method):
-        """Extract representative color from a block using specified method"""
+        """Extract representative color from a block using specified method."""
         if method == "average":
-            # Simple average of all pixels in the block
             return tuple(block.mean(dim=(0, 1)).cpu().numpy() * 255)
         
         elif method == "median":
-            # Median of all pixels in the block
             block_flat = block.reshape(-1, 3)
             median_vals = torch.median(block_flat, dim=0)[0]
             return tuple(median_vals.cpu().numpy() * 255)
@@ -113,7 +80,7 @@ class IRCArtConverter:
             if len(block_flat) < 2:
                 return tuple(block_flat[0] * 255)
             
-            # Check for color variance - if too uniform, just return average
+            # Check for color variance
             color_std = np.std(block_flat, axis=0)
             if np.max(color_std) < 0.01:  # Very uniform color
                 return tuple(np.mean(block_flat, axis=0) * 255)
@@ -144,6 +111,76 @@ class IRCArtConverter:
                 # Fallback to average if k-means fails
                 return tuple(block.mean(dim=(0, 1)).cpu().numpy() * 255)
     
+    def find_irc_color_index(self, block_color, use_16_colors):
+        """Find the IRC color index for a given block color."""
+        # Get representative color for this block
+        block_color_rounded = tuple(np.round(block_color).astype(int))
+        
+        # Find the exact IRC color index using exact matching first
+        # Try exact match first (since colors should already be in IRC palette)
+        try:
+            if use_16_colors:
+                color_idx = self.IRC_COLORS[:16].index(block_color_rounded)
+            else:
+                color_idx = self.IRC_COLORS.index(block_color_rounded)
+        except ValueError:
+            # Fallback to distance matching if exact match fails
+            block_color_array = np.array(block_color)
+            if use_16_colors:
+                target_colors_array = np.array(self.IRC_COLORS[:16])
+            else:
+                target_colors_array = np.array(self.IRC_COLORS)
+            
+            distances = self.manhattan_distance(block_color_array, target_colors_array)
+            color_idx = np.argmin(distances)
+        
+        return color_idx
+    
+    def format_irc_line(self, line_colors):
+        """Format a line of IRC color codes with compression."""
+        if not line_colors:
+            return ""
+        
+        line_text = ""
+        i = 0
+        while i < len(line_colors):
+            color_code = line_colors[i]
+            count = 1
+            
+            # Count consecutive identical colors
+            while i + count < len(line_colors) and line_colors[i + count] == color_code:
+                count += 1
+            
+            # Format color code
+            if color_code <= 9:
+                color_format = f"\x03{color_code},{color_code}"
+            else:
+                color_format = f"\x03{color_code:02d},{color_code:02d}"
+            
+            line_text += color_format + (" " * count)
+            i += count
+        
+        return line_text
+    
+    def process_block(self, color_transferred_img, x, y, block_width, block_height, 
+                     actual_block_height, width, height, color_method, use_16_colors):
+        """Process a single block and return its color index."""
+        # Calculate block boundaries
+        start_x = x * block_width
+        end_x = min(start_x + block_width, width)
+        start_y = round(y * actual_block_height)
+        end_y = round(min((y + 1) * actual_block_height, height))
+        
+        # Extract block
+        block = color_transferred_img[start_y:end_y, start_x:end_x, :]
+        
+        # Get IRC color index
+        if block.numel() == 0:
+            return 0, start_y, end_y
+        else:
+            block_color = self.get_block_color(block, color_method)
+            return self.find_irc_color_index(block_color, use_16_colors), start_y, end_y
+    
     def convert_to_irc_art(self, image, block_width, block_height, half_block_mode, use_16_colors, color_method):
         # Input validation
         batch_size, height, width, channels = image.shape
@@ -154,102 +191,75 @@ class IRCArtConverter:
         # Get the first (and only) image from batch
         img = image[0]  # Shape: (height, width, 3)
         
-        # Step 1: Apply color transfer to map image to IRC palette
+        # Apply color transfer to map image to IRC palette
         color_transferred_img = self.apply_color_transfer(img, use_16_colors)
-        
-        # Adjust block height for half block mode
-        actual_block_height = block_height / 2 if half_block_mode else block_height
         
         # Calculate number of blocks
         blocks_x = width // block_width
-        blocks_y = int(height // actual_block_height)
+        
+        if half_block_mode:
+            blocks_y = (height * 2) // block_height
+            actual_block_height = block_height / 2
+        else:
+            blocks_y = height // block_height
+            actual_block_height = block_height
         
         # Create output image and text lines
         output = torch.zeros_like(img)
         text_lines = []
         
-        # Process each block
-        for y in range(blocks_y):
-            line_colors = []  # Store color codes for this line
-            
-            for x in range(blocks_x):
-                # Calculate block boundaries
-                start_x = x * block_width
-                end_x = min(start_x + block_width, width)
+        # Process blocks
+        if half_block_mode:
+            # Half-block mode: process in pairs
+            for y in range(0, blocks_y, 2):
+                line_colors = []
                 
-                if half_block_mode:
-                    start_y = round(y * actual_block_height)
-                    end_y = round(min((y + 1) * actual_block_height, height))
-                else:
-                    start_y = y * block_height
-                    end_y = min(start_y + block_height, height)
+                for x in range(blocks_x):
+                    # Process first half-block
+                    color_idx, start_y, end_y = self.process_block(
+                        color_transferred_img, x, y, block_width, block_height,
+                        actual_block_height, width, height, color_method, use_16_colors
+                    )
+                    
+                    # Apply color to image and store for text
+                    irc_color = self.IRC_COLORS[color_idx]
+                    irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
+                    output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
+                    line_colors.append(color_idx + 1)  # IRC codes are 1-based
+                    
+                    # Process second half-block if it exists
+                    if y + 1 < blocks_y:
+                        color_idx2, start_y2, end_y2 = self.process_block(
+                            color_transferred_img, x, y + 1, block_width, block_height,
+                            actual_block_height, width, height, color_method, use_16_colors
+                        )
+                        
+                        # Apply color to second block
+                        irc_color2 = self.IRC_COLORS[color_idx2]
+                        irc_color_tensor2 = torch.tensor(irc_color2, dtype=torch.float32) / 255.0
+                        output[start_y2:end_y2, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor2
                 
-                # Extract block from color-transferred image
-                block = color_transferred_img[start_y:end_y, start_x:end_x, :]
+                text_lines.append(self.format_irc_line(line_colors))
+        else:
+            # Full block mode
+            for y in range(blocks_y):
+                line_colors = []
                 
-                if block.numel() == 0:
-                    line_colors.append(1)  # Default to black
-                    continue
+                for x in range(blocks_x):
+                    color_idx, start_y, end_y = self.process_block(
+                        color_transferred_img, x, y, block_width, block_height,
+                        actual_block_height, width, height, color_method, use_16_colors
+                    )
+                    
+                    # Apply color to image and store for text
+                    irc_color = self.IRC_COLORS[color_idx]
+                    irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
+                    output[start_y:end_y, x * block_width:min((x + 1) * block_width, width), :] = irc_color_tensor
+                    line_colors.append(color_idx + 1)  # IRC codes are 1-based
                 
-                # Get representative color for this block (now already in IRC palette)
-                block_color = self.get_block_color(block, color_method)
-                
-                # Find the exact IRC color index since colors are already mapped
-                block_color_array = np.array(block_color)
-                
-                # Use the same color palette as color transfer
-                if use_16_colors:
-                    target_colors_array = np.array(self.IRC_COLORS[:16])
-                else:
-                    target_colors_array = np.array(self.IRC_COLORS)
-                
-                distances = self.manhattan_distance(block_color_array, target_colors_array)
-                color_idx = np.argmin(distances)
-                
-                # Get the actual color and code from the full palette
-                if use_16_colors:
-                    irc_color = self.IRC_COLORS[color_idx]  # color_idx is 0-15
-                    irc_code = self.get_irc_color_code(color_idx)  # codes 1-16
-                else:
-                    irc_color = self.IRC_COLORS[color_idx]  # color_idx is 0-98
-                    irc_code = self.get_irc_color_code(color_idx)  # codes 1-99
-                
-                # Store color code for text output
-                line_colors.append(irc_code)
-                
-                # Fill the entire block with the IRC color
-                irc_color_tensor = torch.tensor(irc_color, dtype=torch.float32) / 255.0
-                output[start_y:end_y, start_x:end_x, :] = irc_color_tensor
-            
-            # Build IRC text line with optimized color codes and compression
-            line_text = ""
-            if not line_colors:
-                text_lines.append("")
-                continue
-                
-            # Compress consecutive identical colors
-            i = 0
-            while i < len(line_colors):
-                color_code = line_colors[i]
-                count = 1
-                
-                # Count consecutive identical colors
-                while i + count < len(line_colors) and line_colors[i + count] == color_code:
-                    count += 1
-                
-                # Format color code (single digits for 1-9, double for 10+)
-                if color_code <= 9:
-                    color_format = f"\x03{color_code},{color_code}"
-                else:
-                    color_format = f"\x03{color_code:02d},{color_code:02d}"
-                
-                # Add spaces based on count
-                line_text += color_format + (" " * count)
-                i += count
-            
-            text_lines.append(line_text)
+                text_lines.append(self.format_irc_line(line_colors))
         
-        # Join all lines with newlines (no header timestamp)
+        # Join all lines with newlines
         irc_text = "\n".join(text_lines)
         
         # Return as batch of 1

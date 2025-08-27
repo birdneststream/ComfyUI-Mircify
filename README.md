@@ -107,6 +107,11 @@ The node uses a two-stage approach:
 
 The node uses an extended 99-color IRC palette built in.
 
+For more information about how IRC uses colors refer to these resources:
+
+- [https://modern.ircdocs.horse/formatting.html#color](https://modern.ircdocs.horse/formatting.html#color)
+- [https://anti.teamidiot.de/static/nei/*/extended_mirc_color_proposal.html](https://anti.teamidiot.de/static/nei/*/extended_mirc_color_proposal.html)
+
 ## Requirements
 
 - ComfyUI
