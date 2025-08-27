@@ -7,7 +7,7 @@ name = "comfyui-mircify"
 version = "1.0.0"
 description = "ComfyUI node for converting images to IRC art blocks"
 authors = [
-    {name = "ComfyUI-Mircify", email = "noreply@example.com"}
+    {name = "ComfyUI-Mircify", email = "bird@birdnest.live"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
@@ -21,4 +21,4 @@ dependencies = [
 keywords = ["comfyui", "irc", "art", "image-processing"]
 
 [project.urls]
-Repository = "https://github.com/example/ComfyUI-Mircify"
+Repository = "https://github.com/birdneststream/ComfyUI-Mircify"

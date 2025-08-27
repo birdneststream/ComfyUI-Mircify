@@ -1,8 +1,8 @@
 # ComfyUI-Mircify
 
-A ComfyUI custom node for converting images into IRC art by processing them in pixel blocks and generating both image and text outputs with optimal color selection from a 99-color IRC palette.
+A ComfyUI custom node for converting images into IRC art by processing them in pixel blocks and generating image and text outputs with optimal color selection from a 99-color IRC palette. Now supports both IRC and ANSI terminal text outputs for maximum compatibility.
 
-This node is used with [aibird](https://github.com/birdneststream/aibird) to convert text prompts to IRC art that is scrolled in the IRC client.
+This node is used with [aibird](https://github.com/birdneststream/aibird) to convert text prompts to IRC art that is scrolled in the IRC client, and can also output ANSI-formatted text for terminal display.
 
 ## Limitations
 
@@ -25,6 +25,25 @@ Pasting the results of the created `.txt` file into IRC, we should be able to se
 
 ![IRC output](workflows/screenshot_irc.png)
 
+## ANSI Terminal Output
+
+The node now also generates ANSI-formatted text that can be displayed directly in terminals with 256-color support. The ANSI output uses:
+
+- **256-color palette**: Maps IRC colors to the closest ANSI 256-color equivalents using RGB distance calculations
+- **Background colors with spaces**: Creates solid color blocks for consistent rendering
+- **Half-block support**: Uses the ▀ character with foreground/background colors for different top/bottom colors
+- **Automatic color reset**: Properly resets colors at the end of each line
+
+To view ANSI output in a terminal:
+```bash
+cat output/irc_art/your_ansi_file.txt
+```
+
+or display it with `less -R` to preserve colors:
+```bash
+less -R output/irc_art/your_ansi_file.txt
+```
+
 ## Features
 
 - **Universal Image Support**: Works with any image dimensions, but remember the IRC 512 byte limit per line.
@@ -35,8 +54,10 @@ Pasting the results of the created `.txt` file into IRC, we should be able to se
 - **Multiple Distance Methods**: Choose between weighted manhattan, manhattan, euclidean, and perceptual weighted distance calculations
 - **99-Color IRC Palette**: Maps colors to extended IRC color palette
 - **16-Color Compatibility Mode**: Option to use traditional 16-color IRC palette
-- **Dual Output**: Returns both processed image and mIRC-formatted text
-- **Optimized Text Output**: Compressed color codes and space-efficient formatting
+- **Dual Text Output**: Returns both IRC-formatted and ANSI-formatted text
+- **ANSI Terminal Support**: Generate ANSI escape sequences for terminal display with 256-color accuracy
+- **Intelligent Output Generation**: Only generates text outputs that are connected, optimizing performance
+- **Optimized Text Output**: Compressed color codes and space-efficient formatting for both IRC and ANSI
 - **Text File Export**: Save IRC codes directly to text files with timestamp support
 
 ## Installation
@@ -73,6 +94,7 @@ Converts images into IRC art with both visual and text output.
 **Outputs:**
 - **processed_image**: Visual representation of the IRC art conversion
 - **irc_text**: mIRC-formatted text with color codes ready for IRC clients
+- **ansi_text**: ANSI-formatted text with 256-color escape sequences for terminal display
 
 ### IRC Text Saver
 **Category**: `text/output`
@@ -91,7 +113,8 @@ Saves IRC-formatted text to files for easy copying.
 1. **Basic Workflow:**
    - Load an image
    - Connect it to "IRC Art Converter"
-   - Connect the `irc_text` output to "IRC Text Saver"
+   - Connect the `irc_text` output to "IRC Text Saver" (for IRC clients)
+   - Optionally connect the `ansi_text` output to display in terminals
    - Run the workflow
 
 2. **Distance Methods:**
@@ -109,9 +132,10 @@ Saves IRC-formatted text to files for easy copying.
    - **16-color mode**: Traditional IRC colors for better compatibility
 
 5. **Text Output:**
-   - Uses optimized mIRC color text output
-   - Ready to paste directly into IRC clients
-   - Support for {TIMESTAMP} placeholder in filenames
+   - **IRC Output**: Uses optimized mIRC color text output ready to paste directly into IRC clients
+   - **ANSI Output**: Uses ANSI 256-color escape sequences for terminal display with accurate color mapping
+   - **Performance Optimization**: Only generates text for outputs that are actually connected to other nodes
+   - **Support**: {TIMESTAMP} placeholder in filenames for IRC Text Saver
 
 ## Color Processing
 
