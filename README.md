@@ -13,7 +13,7 @@ This node is used with [aibird](https://github.com/birdneststream/aibird) to con
 
 ## Workflow
 
-![Workflow Example](workflows/screenshot.png)
+![Workflow Example](workflows/screenshot.jpg)
 
 An example workflow is provided in `workflows/mircify_example_workflow.json`.
 
@@ -23,7 +23,7 @@ At the moment this example is using qwen image (gguf), lightning 4 step lora wit
 
 Pasting the results of the created `.txt` file into IRC, we should be able to see the IRC art rendered in the client.
 
-![IRC output](workflows/screenshot_irc.png)
+![IRC output](workflows/screenshot_irc.jpg)
 
 ## ANSI Terminal Output
 
