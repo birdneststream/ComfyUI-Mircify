@@ -1,8 +1,8 @@
 {
   "id": "6a85ef9e-440c-47f8-b6cc-6a647c18839d",
   "revision": 0,
-  "last_node_id": 93,
-  "last_link_id": 156,
+  "last_node_id": 94,
+  "last_link_id": 159,
   "nodes": [
     {
       "id": 7,
@@ -399,13 +399,164 @@
         "widget_ue_connectable": {}
       },
       "widgets_values": [
-        817468956820710,
+        462218769959024,
         "randomize",
         4,
         1,
         "res_2s",
         "bong_tangent",
         1
+      ]
+    },
+    {
+      "id": 91,
+      "type": "IRC Text Saver",
+      "pos": [
+        1386.3250732421875,
+        292.4225158691406
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "irc_text",
+          "type": "STRING",
+          "link": 155
+        }
+      ],
+      "outputs": [
+        {
+          "name": "file_path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "ComfyUI-Mircify.git",
+        "ver": "7560f88586f8cf1c4e67e706e79f3dfc3390f308",
+        "Node name for S&R": "IRC Text Saver"
+      },
+      "widgets_values": [
+        "irc_art_{TIMESTAMP}.txt"
+      ]
+    },
+    {
+      "id": 93,
+      "type": "IRC Text Saver",
+      "pos": [
+        1391.58154296875,
+        407.7270812988281
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "irc_text",
+          "type": "STRING",
+          "link": 156
+        }
+      ],
+      "outputs": [
+        {
+          "name": "file_path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "ComfyUI-Mircify.git",
+        "ver": "7560f88586f8cf1c4e67e706e79f3dfc3390f308",
+        "Node name for S&R": "IRC Text Saver"
+      },
+      "widgets_values": [
+        "ansi_art_{TIMESTAMP}.txt"
+      ]
+    },
+    {
+      "id": 76,
+      "type": "UnetLoaderGGUF",
+      "pos": [
+        -125.99971008300781,
+        -188.51158142089844
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            134
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-GGUF",
+        "ver": "d247022e3fa66851c5084cc251b076aab816423d",
+        "Node name for S&R": "UnetLoaderGGUF"
+      },
+      "widgets_values": [
+        "qwen/qwen-image-Q8_0.gguf"
+      ]
+    },
+    {
+      "id": 94,
+      "type": "IRC PNG Exporter",
+      "pos": [
+        1399.4827880859375,
+        -166.5812225341797
+      ],
+      "size": [
+        270,
+        334
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 159
+        },
+        {
+          "name": "irc_text",
+          "shape": 7,
+          "type": "STRING",
+          "link": 157
+        },
+        {
+          "name": "ansi_text",
+          "shape": 7,
+          "type": "STRING",
+          "link": 158
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "aux_id": "ComfyUI-Mircify.git",
+        "ver": "2d649703ece193bb00fecca47f77c9a9e76dd3fc",
+        "Node name for S&R": "IRC PNG Exporter"
+      },
+      "widgets_values": [
+        true,
+        "irc_art_{TIMESTAMP}.png"
       ]
     },
     {
@@ -460,43 +611,6 @@
       "bgcolor": "#353"
     },
     {
-      "id": 91,
-      "type": "IRC Text Saver",
-      "pos": [
-        1386.3250732421875,
-        292.4225158691406
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "irc_text",
-          "type": "STRING",
-          "link": 155
-        }
-      ],
-      "outputs": [
-        {
-          "name": "file_path",
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "properties": {
-        "aux_id": "ComfyUI-Mircify.git",
-        "ver": "7560f88586f8cf1c4e67e706e79f3dfc3390f308",
-        "Node name for S&R": "IRC Text Saver"
-      },
-      "widgets_values": [
-        "irc_art_{TIMESTAMP}.txt"
-      ]
-    },
-    {
       "id": 82,
       "type": "IRC Art Converter",
       "pos": [
@@ -522,21 +636,23 @@
           "name": "processed_image",
           "type": "IMAGE",
           "links": [
-            142
+            159
           ]
         },
         {
           "name": "irc_text",
           "type": "STRING",
           "links": [
-            155
+            155,
+            157
           ]
         },
         {
           "name": "ansi_text",
           "type": "STRING",
           "links": [
-            156
+            156,
+            158
           ]
         }
       ],
@@ -551,105 +667,6 @@
         true,
         false,
         "perceptual_weighted"
-      ]
-    },
-    {
-      "id": 93,
-      "type": "IRC Text Saver",
-      "pos": [
-        1391.58154296875,
-        407.7270812988281
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "irc_text",
-          "type": "STRING",
-          "link": 156
-        }
-      ],
-      "outputs": [
-        {
-          "name": "file_path",
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "properties": {
-        "aux_id": "ComfyUI-Mircify.git",
-        "ver": "7560f88586f8cf1c4e67e706e79f3dfc3390f308",
-        "Node name for S&R": "IRC Text Saver"
-      },
-      "widgets_values": [
-        "ansi_art_{TIMESTAMP}.txt"
-      ]
-    },
-    {
-      "id": 80,
-      "type": "PreviewImage",
-      "pos": [
-        1385.32958984375,
-        -166.24484252929688
-      ],
-      "size": [
-        524.072998046875,
-        389.5648498535156
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 142
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.52",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 76,
-      "type": "UnetLoaderGGUF",
-      "pos": [
-        -125.99971008300781,
-        -188.51158142089844
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            134
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUI-GGUF",
-        "ver": "d247022e3fa66851c5084cc251b076aab816423d",
-        "Node name for S&R": "UnetLoaderGGUF"
-      },
-      "widgets_values": [
-        "qwen/qwen-image-Q8_0.gguf"
       ]
     }
   ],
@@ -735,14 +752,6 @@
       "MODEL"
     ],
     [
-      142,
-      82,
-      0,
-      80,
-      0,
-      "IMAGE"
-    ],
-    [
       150,
       8,
       0,
@@ -765,6 +774,30 @@
       93,
       0,
       "STRING"
+    ],
+    [
+      157,
+      82,
+      1,
+      94,
+      1,
+      "STRING"
+    ],
+    [
+      158,
+      82,
+      2,
+      94,
+      2,
+      "STRING"
+    ],
+    [
+      159,
+      82,
+      0,
+      94,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],
@@ -773,8 +806,8 @@
     "ds": {
       "scale": 0.8390545288824212,
       "offset": [
-        108.16671263739013,
-        536.0446891793314
+        271.42065915743825,
+        496.835589687672
       ]
     },
     "frontendVersion": "1.23.4",

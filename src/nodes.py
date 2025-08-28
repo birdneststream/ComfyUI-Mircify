@@ -192,12 +192,13 @@ class IRCFormatter(TextFormatter):
     
     @staticmethod
     def format_line(line_colors: List[Union[int, Tuple[int, int]]]) -> str:
-        """Format a line of IRC color codes with compression."""
+        """Format a line of IRC color codes with comprehensive duplicate prevention."""
         if not line_colors:
             return ""
         
         result = []
         i = 0
+        last_color_code = None  # Track the last color code to prevent duplicates
         
         while i < len(line_colors):
             color_entry = line_colors[i]
@@ -207,23 +208,47 @@ class IRCFormatter(TextFormatter):
                 top_color, bottom_color = color_entry
                 
                 if top_color == bottom_color:
-                    # Compress consecutive identical blocks
+                    # Same colors - treat as spaces with background color
                     count = 1
                     while (i + count < len(line_colors) and 
                            isinstance(line_colors[i + count], tuple) and 
                            line_colors[i + count] == color_entry):
                         count += 1
                     
-                    result.append(IRCFormatter.format_color_code(top_color) + (SPACE_CHAR * count))
+                    color_code = IRCFormatter.format_color_code(top_color)
+                    if color_code != last_color_code:
+                        result.append(color_code + (SPACE_CHAR * count))
+                        last_color_code = color_code
+                    else:
+                        # Same color code as previous, just add spaces without color code
+                        result.append(SPACE_CHAR * count)
                     i += count
                 else:
-                    # Different colors - use half block character
-                    result.append(IRCFormatter.format_color_code(top_color, bottom_color) + HALF_BLOCK_CHAR)
-                    i += 1
+                    # Different colors - check for consecutive identical half-block patterns
+                    count = 1
+                    while (i + count < len(line_colors) and 
+                           isinstance(line_colors[i + count], tuple) and 
+                           line_colors[i + count] == color_entry):
+                        count += 1
+                    
+                    color_code = IRCFormatter.format_color_code(top_color, bottom_color)
+                    if color_code != last_color_code:
+                        result.append(color_code + (HALF_BLOCK_CHAR * count))
+                        last_color_code = color_code
+                    else:
+                        # Same color code as previous, just add characters without color code
+                        result.append(HALF_BLOCK_CHAR * count)
+                    i += count
             else:
-                # Full-block mode
+                # Full-block mode - treat as spaces with background color
                 count = IRCFormatter.count_consecutive(line_colors, i)
-                result.append(IRCFormatter.format_color_code(color_entry) + (SPACE_CHAR * count))
+                color_code = IRCFormatter.format_color_code(color_entry)
+                if color_code != last_color_code:
+                    result.append(color_code + (SPACE_CHAR * count))
+                    last_color_code = color_code
+                else:
+                    # Same color code as previous, just add spaces without color code
+                    result.append(SPACE_CHAR * count)
                 i += count
         
         return ''.join(result)
@@ -250,12 +275,13 @@ class ANSIFormatter(TextFormatter):
         return f"\033[38;5;{top_ansi};48;5;{bottom_ansi}m{HALF_BLOCK_CHAR}"
     
     def format_line(self, line_colors: List[Union[int, Tuple[int, int]]]) -> str:
-        """Format a line of ANSI color codes with compression."""
+        """Format a line of ANSI color codes with comprehensive duplicate prevention."""
         if not line_colors:
             return ""
         
         result = []
         i = 0
+        last_ansi_code = None  # Track the last ANSI code to prevent duplicates
         
         while i < len(line_colors):
             color_entry = line_colors[i]
@@ -265,7 +291,7 @@ class ANSIFormatter(TextFormatter):
                 top_color, bottom_color = color_entry
                 
                 if top_color == bottom_color:
-                    # Same color - compress
+                    # Same colors - treat as background spaces
                     count = 1
                     while (i + count < len(line_colors) and 
                            isinstance(line_colors[i + count], tuple) and 
@@ -273,19 +299,43 @@ class ANSIFormatter(TextFormatter):
                         count += 1
                     
                     ansi_color = self.get_ansi_color(top_color)
-                    result.append(self.format_background(ansi_color, count))
+                    ansi_code = f"\033[48;5;{ansi_color}m"
+                    if ansi_code != last_ansi_code:
+                        result.append(ansi_code + (SPACE_CHAR * count))
+                        last_ansi_code = ansi_code
+                    else:
+                        # Same ANSI code as previous, just add spaces without code
+                        result.append(SPACE_CHAR * count)
                     i += count
                 else:
-                    # Different colors - half block
+                    # Different colors - check for consecutive identical patterns
+                    count = 1
+                    while (i + count < len(line_colors) and 
+                           isinstance(line_colors[i + count], tuple) and 
+                           line_colors[i + count] == color_entry):
+                        count += 1
+                    
                     top_ansi = self.get_ansi_color(top_color)
                     bottom_ansi = self.get_ansi_color(bottom_color)
-                    result.append(self.format_half_block(top_ansi, bottom_ansi))
-                    i += 1
+                    ansi_code = f"\033[38;5;{top_ansi};48;5;{bottom_ansi}m"
+                    if ansi_code != last_ansi_code:
+                        result.append(ansi_code + (HALF_BLOCK_CHAR * count))
+                        last_ansi_code = ansi_code
+                    else:
+                        # Same ANSI code as previous, just add characters without code
+                        result.append(HALF_BLOCK_CHAR * count)
+                    i += count
             else:
-                # Full-block mode
+                # Full-block mode - treat as background spaces
                 count = ANSIFormatter.count_consecutive(line_colors, i)
                 ansi_color = self.get_ansi_color(color_entry)
-                result.append(self.format_background(ansi_color, count))
+                ansi_code = f"\033[48;5;{ansi_color}m"
+                if ansi_code != last_ansi_code:
+                    result.append(ansi_code + (SPACE_CHAR * count))
+                    last_ansi_code = ansi_code
+                else:
+                    # Same ANSI code as previous, just add spaces without code
+                    result.append(SPACE_CHAR * count)
                 i += count
         
         result.append(ANSI_RESET)

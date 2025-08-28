@@ -19,6 +19,8 @@ An example workflow is provided in `workflows/mircify_example_workflow.json`.
 
 At the moment this example is using qwen image (gguf), lightning 4 step lora with RES4LYF samplers. However any model that is decent at making pixel ansi style art can suffice.
 
+It will save the irc and ansi data to the [png exif data](#irc-png-exporter) and also to [file](#irc-text-saver).
+
 ## IRC Output
 
 Pasting the results of the created `.txt` file into IRC, we should be able to see the IRC art rendered in the client.
@@ -43,6 +45,8 @@ or display it with `less -R` to preserve colors:
 ```bash
 less -R output/irc_art/your_ansi_file.txt
 ```
+
+![ANSI output](workflows/screenshot_ansi.jpg)
 
 ## Features
 
@@ -202,6 +206,7 @@ For more information about how IRC uses colors refer to these resources:
 - torch
 - numpy
 - scikit-learn
+- Pillow
 
 ## Credits
 
