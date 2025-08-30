@@ -181,10 +181,14 @@ class IRCFormatter(TextFormatter):
     """Handles IRC-specific text formatting."""
     
     @staticmethod
-    def format_color_code(fg_color: int, bg_color: Optional[int] = None) -> str:
-        """Format IRC color code with proper padding."""
+    def format_color_code(fg_color: int, bg_color: Optional[int] = None, is_space: bool = False) -> str:
+        """Format IRC color code with proper padding and space optimization."""
         if bg_color is None:
             bg_color = fg_color
+        
+        # Optimize for spaces: if fg == bg, set fg to 0 to save bytes
+        if is_space and fg_color == bg_color:
+            fg_color = 0
         
         fg_fmt = f"{fg_color:02d}" if fg_color >= 10 else str(fg_color)
         bg_fmt = f"{bg_color:02d}" if bg_color >= 10 else str(bg_color)
@@ -215,7 +219,7 @@ class IRCFormatter(TextFormatter):
                            line_colors[i + count] == color_entry):
                         count += 1
                     
-                    color_code = IRCFormatter.format_color_code(top_color)
+                    color_code = IRCFormatter.format_color_code(top_color, is_space=True)
                     if color_code != last_color_code:
                         result.append(color_code + (SPACE_CHAR * count))
                         last_color_code = color_code
@@ -242,7 +246,7 @@ class IRCFormatter(TextFormatter):
             else:
                 # Full-block mode - treat as spaces with background color
                 count = IRCFormatter.count_consecutive(line_colors, i)
-                color_code = IRCFormatter.format_color_code(color_entry)
+                color_code = IRCFormatter.format_color_code(color_entry, is_space=True)
                 if color_code != last_color_code:
                     result.append(color_code + (SPACE_CHAR * count))
                     last_color_code = color_code
@@ -607,17 +611,26 @@ class IRCArtConverter:
                             distance_method: str) -> int:
         """Find the IRC color index for a given color."""
         # Select palette
-        palette = IRC_COLORS[:16] if use_16_colors else IRC_COLORS
+        if use_16_colors:
+            palette = IRC_COLORS[:16]
+            max_index = 15
+        else:
+            palette = IRC_COLORS
+            max_index = len(IRC_COLORS) - 1
         
         # Try exact match first
         color_rounded = tuple(np.round(color).astype(int))
         try:
-            return palette.index(color_rounded)
+            index = palette.index(color_rounded)
+            # Ensure index is within bounds for the selected palette
+            return min(index, max_index)
         except ValueError:
             # Fallback to distance matching
             target_colors_array = np.array(palette)
             distances = self.distance_calc.calculate(np.array(color), target_colors_array, distance_method)
-            return int(np.argmin(distances))
+            index = int(np.argmin(distances))
+            # Ensure index is within bounds for the selected palette
+            return min(index, max_index)
     
     def process_block(self, image: torch.Tensor, x: int, y: int, params: Dict[str, Any]) -> Tuple[int, int, int]:
         """Process a single block and return its color index and boundaries."""
